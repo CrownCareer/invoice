@@ -3,248 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crown Career - Ultimate Invoice System</title>
+    <title>Crown Career - Final Invoice System</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        :root { --primary: #003366; --accent: #28a745; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f7f9; margin: 0; }
-        
-        /* Auth Styles */
-        #landing-page { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: var(--primary); position: fixed; width: 100%; z-index: 9999; top:0; left:0; gap: 20px; }
-        .option-box { background: white; padding: 40px; border-radius: 12px; width: 250px; text-align: center; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.2); font-weight: bold; color: var(--primary); transition: 0.3s; }
-        .option-box:hover { transform: translateY(-5px); }
-        #auth-container { display: none; justify-content: center; align-items: center; min-height: 100vh; background: #002244; position: fixed; width: 100%; z-index: 10000; top:0; left:0; }
-        .auth-box { background: white; padding: 30px; border-radius: 12px; width: 320px; text-align: center; }
-        .auth-box input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;}
-        .auth-box button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        :root { --primary: #003366; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #525659; margin: 0; padding: 0; }
 
-        /* Admin Dashboard */
-        #admin-panel-ui { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 10001; padding: 30px; box-sizing: border-box; overflow-y: auto; }
-        .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 30px; font-size: 14px; }
-        .data-table th, .data-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        .data-table th { background: #f1f1f1; }
-        .section-title { color: var(--primary); border-left: 5px solid var(--primary); padding-left: 10px; margin-top: 30px; }
+        /* কন্ট্রোল প্যানেল যা প্রিন্টে আসবে না */
+        .no-print {
+            max-width: 800px; margin: 20px auto; background: #fff; padding: 20px;
+            border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
 
-        /* Main App Layout */
-        #main-app { display: none; padding: 20px; }
-        .setup-panel { max-width: 950px; margin: auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 6px solid var(--primary); margin-bottom: 30px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .input-group { display: flex; flex-direction: column; font-size: 13px; font-weight: bold; margin-bottom: 10px; }
-        input { padding: 10px; border: 1px solid #ccc; border-radius: 6px; outline: none; }
-        
-        .item-row { display: grid; grid-template-columns: 3fr 1fr 1.5fr 45px; gap: 10px; margin-bottom: 10px; align-items: end; }
-        .btn-add { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        /* মূল ইনভয়েস - A4 সাইজ ফিক্সড (210mm x 297mm) */
+        #invoice {
+            width: 210mm;
+            height: 296mm; /* সামান্য কম রাখা হয়েছে যাতে ২য় পেজে না যায় */
+            margin: 0 auto;
+            background: #fff;
+            padding: 20mm;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
 
-        /* Invoice Sheet Styling - Multipage Watermark fix */
-        #invoice { position: relative; width: 800px; margin: 40px auto; background: #fff; padding: 40px; border: 1px solid #ddd; min-height: 1050px; box-sizing: border-box; }
-        
-        /* ওয়াটারমার্ককে পেজের মাঝখানে ফিক্সড করার জন্য CSS পরিবর্তন */
-        #wtm-container { 
-            position: absolute; 
-            top: 0; left: 0; 
-            width: 100%; height: 100%; 
+        /* ওয়াটারমার্ক ডিজাইন */
+        #wtm-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; justify-content: center; align-items: center;
             opacity: 0.1; pointer-events: none; z-index: 0;
         }
-        #wtm-text-view { font-size: 90px; font-weight: 900; color: #000; text-transform: uppercase; transform: rotate(-35deg); }
-        #wtm-img-view { max-width: 500px; transform: rotate(-35deg); display: none; }
-        
-        .header { display: flex; justify-content: space-between; border-bottom: 3px solid var(--primary); padding-bottom: 20px; position: relative; z-index: 1; }
+        #wtm-text-view { font-size: 80pt; font-weight: 900; transform: rotate(-45deg); color: #000; text-transform: uppercase; }
+        #wtm-img-view { width: 140mm; transform: rotate(-45deg); display: none; }
+
+        /* ইনভয়েস কন্টেন্ট */
+        .header { display: flex; justify-content: space-between; border-bottom: 3px solid var(--primary); padding-bottom: 15px; position: relative; z-index: 1; }
+        .logo { max-height: 60px; margin-bottom: 5px; }
         .inv-table { width: 100%; border-collapse: collapse; margin-top: 30px; position: relative; z-index: 1; }
-        .inv-table th { background: #f8f9fa; border: 1px solid #dee2e6; padding: 12px; text-align: left; }
-        .inv-table td { border: 1px solid #dee2e6; padding: 12px; }
-        
-        .grand-total { font-size: 22px; color: var(--primary); border-top: 2px solid var(--primary); margin-top: 20px; padding-top: 10px; font-weight: bold; text-align: right; }
-        .footer-sig { margin-top: 100px; display: flex; justify-content: space-between; position: relative; z-index: 1; }
-        .sig-box { width: 200px; text-align: center; }
-        .sig-line { border-top: 1px solid #000; padding-top: 5px; font-weight: bold; }
-        #sig-view { max-height: 80px; display: none; margin: 5px auto 0; }
+        .inv-table th, .inv-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .inv-table th { background: #f4f4f4; color: var(--primary); }
+
+        .footer { position: absolute; bottom: 20mm; left: 20mm; right: 20mm; display: flex; justify-content: space-between; }
+        .sig-box { border-top: 2px solid #333; width: 180px; text-align: center; padding-top: 5px; font-weight: bold; }
+
+        /* ইনপুট স্টাইল */
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
+        input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
+        button { padding: 12px 25px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #002244; }
     </style>
 </head>
 <body>
 
-<div id="landing-page">
-    <div class="option-box" onclick="openLogin('admin')">ADMIN ACCESS</div>
-    <div class="option-box" onclick="openLogin('user')">USER ACCESS / SIGNUP</div>
-</div>
-
-<div id="auth-container">
-    <div class="auth-box">
-        <h2 id="form-title">Login</h2>
-        <input type="text" id="userIn" placeholder="Username">
-        <input type="password" id="passIn" placeholder="Password">
-        <button onclick="handleAuth()" id="btnAction">Enter System</button>
-        <p id="toggle-txt" style="font-size:12px; cursor:pointer; text-decoration:underline; margin-top:15px;" onclick="toggleSignup()">New User? Create Account</p>
-        <button onclick="location.reload()" style="background:#888; margin-top:10px; color:white; border:none; padding:5px; width:100%; border-radius:4px; cursor:pointer;">Back</button>
+<div class="no-print">
+    <h3 style="margin-top:0;">Invoice Settings</h3>
+    <div class="grid">
+        <input type="file" accept="image/*" onchange="previewMedia(event, 'logo-view')">
+        <input type="text" id="wtmIn" placeholder="Watermark Text" oninput="updateSync()">
+        <input type="file" accept="image/*" onchange="previewMedia(event, 'wtm-img-view')">
+    </div>
+    <div class="grid">
+        <input type="text" id="invNoIn" placeholder="Invoice Number" oninput="updateSync()">
+        <input type="text" id="cNameIn" placeholder="Customer Name" oninput="updateSync()">
+        <button onclick="generatePDF()">DOWNLOAD PDF</button>
     </div>
 </div>
 
-<div id="admin-panel-ui">
-    <div style="display:flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee;">
-        <h2>Admin Master Control</h2>
-        <button onclick="location.reload()" style="padding:10px 20px; background:red; color:white; border:none; border-radius:5px; cursor:pointer;">Logout</button>
-    </div>
-    <h3 class="section-title">1. Administrator Accounts</h3>
-    <table class="data-table">
-        <thead><tr style="background:#003366; color:white;"><th>Admin Username</th><th>Password (Edit)</th><th>Role</th></tr></thead>
-        <tbody id="adminList"></tbody>
-    </table>
-    <h3 class="section-title">2. User Management</h3>
-    <table class="data-table">
-        <thead><tr><th>Username</th><th>Password (Edit)</th><th>Status</th><th>Actions</th></tr></thead>
-        <tbody id="userList"></tbody>
-    </table>
-    <h3 class="section-title">3. Global Invoice History</h3>
-    <table class="data-table">
-        <thead><tr><th>Date</th><th>Created By</th><th>Inv No</th><th>Customer Name</th><th>Total BDT</th><th>Action</th></tr></thead>
-        <tbody id="historyList"></tbody>
-    </table>
-    <button onclick="clearLogs()" style="background:orange; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">Clear All Logs</button>
-</div>
-
-<div id="main-app">
-    <div style="max-width:950px; margin: 0 auto 10px; text-align: right;">
-        <button onclick="location.reload()" style="padding: 8px 15px; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Logout Account</button>
-    </div>
-    <div class="setup-panel">
-        <h3>Media & Branding</h3>
-        <div class="grid">
-            <div class="input-group"><label>Logo</label><input type="file" onchange="processMedia('logo', this)"></div>
-            <div class="input-group"><label>Seal/Signature</label><input type="file" onchange="processMedia('sig', this)"></div>
-            <div class="input-group"><label>Watermark Image</label><input type="file" onchange="processMedia('wtm', this)"></div>
-            <div class="input-group"><label>Watermark Text</label><input type="text" id="wtmTextIn" placeholder="e.g. PAID" oninput="sync()"></div>
-        </div>
-        <h3>Invoice Details</h3>
-        <div class="grid">
-            <div class="input-group"><label>Invoice No</label><input type="text" id="invIn" value="INV-2026-001" oninput="sync()"></div>
-            <div class="input-group"><label>Date</label><input type="date" id="dateIn" oninput="sync()"></div>
-            <div class="input-group"><label>Customer Name</label><input type="text" id="cNameIn" placeholder="Enter Name" oninput="sync()"></div>
-            <div class="input-group"><label>Mobile</label><input type="text" id="cMobIn" oninput="sync()"></div>
-        </div>
-        <div class="grid"><div class="input-group"><label>Email</label><input type="text" id="cEmailIn" oninput="sync()"></div><div class="input-group" style="grid-column: span 2;"><label>Full Address</label><input type="text" id="cAddrIn" oninput="sync()"></div></div>
-        <h3>Services / Items</h3>
-        <div id="items-container"><div class="item-row"><div class="input-group"><input type="text" class="pName" placeholder="Description" oninput="sync()"></div><div class="input-group"><input type="number" class="pQty" value="1" oninput="sync()"></div><div class="input-group"><input type="number" class="pPrice" placeholder="Rate" oninput="sync()"></div><div></div></div></div>
-        <button class="btn-add" onclick="addItem()">+ Add Item</button>
-        <button onclick="saveAndDownload()" style="width:100%; background:var(--primary); color:white; padding:18px; border:none; border-radius:8px; font-size:18px; font-weight:bold; cursor:pointer; margin-top:20px;">Download & Save Invoice</button>
+<div id="invoice">
+    <div id="wtm-container">
+        <span id="wtm-text-view"></span>
+        <img id="wtm-img-view">
     </div>
 
-    <div id="invoice">
-        <div id="wtm-container"><span id="wtm-text-view"></span><img id="wtm-img-view"></div>
-        <div class="header">
-            <div><img id="logo-view" style="max-height:60px; margin-bottom:10px; display:none;"><h1 style="margin:0; color:var(--primary); font-size:32px;">Crown Career</h1><p style="margin:0; font-size:14px;">Dhanmondi, Dhaka, Bangladesh</p></div>
-            <div style="text-align:right;"><h2 style="margin:0; color:#ddd; font-size:45px;">INVOICE</h2><p>No: <span id="outInv"></span> | Date: <span id="outDate"></span></p></div>
+    <div class="header">
+        <div>
+            <img id="logo-view" class="logo" style="display:none;">
+            <h1 style="margin:0; color:var(--primary);">Crown Career</h1>
+            <p style="margin:2px 0; font-size:12px;">Dhanmondi, Dhaka, Bangladesh</p>
         </div>
-        <div style="margin-top:35px; position:relative; z-index:1;"><p style="margin:3px 0; font-size:16px;"><strong>Customer Name:</strong> <span id="outName">Walking Customer</span></p><p style="margin:3px 0;"><strong>Mobile:</strong> <span id="outMob">-</span></p><p style="margin:3px 0;"><strong>Email:</strong> <span id="outEmail">-</span></p><p style="margin:3px 0;"><strong>Address:</strong> <span id="outAddr">-</span></p></div>
-        <table class="inv-table"><thead><tr><th style="width:40px;">SL</th><th>Description</th><th>Qty</th><th>Rate</th><th>Total</th></tr></thead><tbody id="inv-body"></tbody></table>
-        <div class="grand-total">Grand Total: BDT <span id="outTotal">0.00</span></div>
-        <p><strong>In Words:</strong> <span id="outWords">ZERO TAKA ONLY</span></p>
-        <div class="footer-sig"><div class="sig-box"><div class="sig-line">Customer Signature</div></div><div class="sig-box"><div class="sig-line">Authorized Signature</div><img id="sig-view"></div></div>
+        <div style="text-align: right;">
+            <h2 style="margin:0; color:#ddd; font-size: 40px;">INVOICE</h2>
+            <p>No: <span id="outInv">---</span></p>
+            <p>Date: <span id="outDate"></span></p>
+        </div>
+    </div>
+
+    <div style="margin-top: 40px; position: relative; z-index: 1;">
+        <p><strong>Customer:</strong> <span id="outName">Walking Customer</span></p>
+    </div>
+
+    <table class="inv-table">
+        <thead>
+            <tr>
+                <th style="width: 50px;">SL</th>
+                <th>Description</th>
+                <th style="width: 150px;">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>01</td>
+                <td>General Service / Consultation</td>
+                <td>0.00 BDT</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <div class="sig-box">Customer Signature</div>
+        <div class="sig-box">Authorized Signature</div>
     </div>
 </div>
 
 <script>
-    let users = JSON.parse(localStorage.getItem('cc_pro_users')) || [{u:'admin', p:'1234', r:'admin', s:'approved'}];
-    let logs = JSON.parse(localStorage.getItem('cc_pro_logs')) || [];
-    let currentUser = ""; let mode = 'user'; let isSignup = false;
+    // আজকের তারিখ সেট করা
+    document.getElementById('outDate').innerText = new Date().toLocaleDateString('en-GB');
 
-    window.onload = function() { document.getElementById('dateIn').value = new Date().toISOString().split('T')[0]; };
-    function openLogin(type) { mode = type; document.getElementById('landing-page').style.display='none'; document.getElementById('auth-container').style.display='flex'; }
-    function toggleSignup() { isSignup = !isSignup; document.getElementById('btnAction').innerText = isSignup ? "Create Account" : "Login"; }
-
-    function handleAuth() {
-        let u = document.getElementById('userIn').value, p = document.getElementById('passIn').value;
-        if(mode === 'admin') {
-            let admin = users.find(x => x.u === u && x.p === p && x.r === 'admin');
-            if(admin) { document.getElementById('auth-container').style.display='none'; renderAdmin(); } else alert("Admin access denied!");
-        } else {
-            if(isSignup) {
-                if(users.find(x => x.u === u)) return alert("Username exists!");
-                users.push({u, p, r:'user', s:'pending'});
-                localStorage.setItem('cc_pro_users', JSON.stringify(users)); alert("Signup successful! Wait for admin approval."); location.reload();
-            } else {
-                let usr = users.find(x => x.u === u && x.p === p);
-                if(usr && usr.s === 'approved') { currentUser = u; document.getElementById('auth-container').style.display='none'; document.getElementById('main-app').style.display='block'; sync(); } else alert("Pending approval or invalid login!");
-            }
-        }
+    function previewMedia(event, targetId) {
+        var reader = new FileReader();
+        reader.onload = function() {
+            var el = document.getElementById(targetId);
+            el.src = reader.result;
+            el.style.display = "block";
+            if(targetId === 'wtm-img-view') document.getElementById('wtm-text-view').style.display='none';
+        };
+        reader.readAsDataURL(event.target.files[0]);
     }
 
-    function renderAdmin() {
-        document.getElementById('admin-panel-ui').style.display='block';
-        const al = document.getElementById('adminList'), ul = document.getElementById('userList'), hl = document.getElementById('historyList');
-        al.innerHTML = ''; ul.innerHTML = ''; hl.innerHTML = '';
-        users.forEach((user, i) => {
-            let row = `<tr><td>${user.u}</td><td><input type="text" value="${user.p}" onchange="updateCred(${i},this.value)"></td><td>${user.r === 'admin' ? 'Master Admin' : user.s}</td>${user.r !== 'admin' ? `<td><button onclick="setStatus(${i},'approved')">Approve</button> <button onclick="setStatus(${i},'pending')">Block</button></td>` : '<td>-</td>'}</tr>`;
-            if(user.r === 'admin') al.innerHTML += row; else ul.innerHTML += row;
-        });
-        logs.forEach((item, index) => { hl.innerHTML += `<tr><td>${item.date}</td><td>${item.user}</td><td>${item.inv}</td><td>${item.cust}</td><td>${item.total}</td><td><button onclick="downloadHistory(${index})" style="background:blue; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer;">Download</button></td></tr>`; });
-    }
-    function updateCred(i, v) { users[i].p = v; localStorage.setItem('cc_pro_users', JSON.stringify(users)); }
-    function setStatus(i, s) { users[i].s = s; localStorage.setItem('cc_pro_users', JSON.stringify(users)); renderAdmin(); }
-    function clearLogs() { if(confirm("Clear history?")) { logs = []; localStorage.setItem('cc_pro_logs', JSON.stringify(logs)); renderAdmin(); } }
-
-    function addItem() {
-        const div = document.createElement('div'); div.className = 'item-row';
-        div.innerHTML = `<div class="input-group"><input type="text" class="pName" oninput="sync()"></div><div class="input-group"><input type="number" class="pQty" value="1" oninput="sync()"></div><div class="input-group"><input type="number" class="pPrice" oninput="sync()"></div><button style="background:red; color:white; border:none; border-radius:4px; cursor:pointer;" onclick="this.parentElement.remove(); sync();">✕</button>`;
-        document.getElementById('items-container').appendChild(div);
-    }
-
-    function processMedia(type, input) {
-        if (input.files && input.files[0]) {
-            let reader = new FileReader();
-            reader.onload = (e) => {
-                if(type==='logo') { document.getElementById('logo-view').src = e.target.result; document.getElementById('logo-view').style.display='block'; }
-                if(type==='sig') { document.getElementById('sig-view').src = e.target.result; document.getElementById('sig-view').style.display='block'; }
-                if(type==='wtm') { document.getElementById('wtm-img-view').src = e.target.result; document.getElementById('wtm-img-view').style.display='block'; document.getElementById('wtm-text-view').style.display='none'; }
-            }; reader.readAsDataURL(input.files[0]);
-        }
-    }
-
-    function sync() {
-        document.getElementById('outInv').innerText = document.getElementById('invIn').value;
-        let d = document.getElementById('dateIn').value; if(d) document.getElementById('outDate').innerText = d.split("-").reverse().join("/");
+    function updateSync() {
+        document.getElementById('outInv').innerText = document.getElementById('invNoIn').value || "---";
         document.getElementById('outName').innerText = document.getElementById('cNameIn').value || "Walking Customer";
-        document.getElementById('outMob').innerText = document.getElementById('cMobIn').value || "-";
-        document.getElementById('outEmail').innerText = document.getElementById('cEmailIn').value || "-";
-        document.getElementById('outAddr').innerText = document.getElementById('cAddrIn').value || "-";
-        document.getElementById('wtm-text-view').innerText = document.getElementById('wtmTextIn').value;
-        const n = document.getElementsByClassName('pName'), q = document.getElementsByClassName('pQty'), p = document.getElementsByClassName('pPrice');
-        let total = 0, html = '';
-        for(let i=0; i<n.length; i++) {
-            let rate = parseFloat(p[i].value) || 0, qty = parseFloat(q[i].value) || 0, sub = rate * qty; total += sub;
-            html += `<tr><td>${i+1}</td><td>${n[i].value || 'Service'}</td><td>${qty}</td><td>${rate.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td><td>${sub.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td></tr>`;
-        }
-        document.getElementById('inv-body').innerHTML = html;
-        document.getElementById('outTotal').innerText = total.toLocaleString('en-IN', {minimumFractionDigits: 2});
-        document.getElementById('outWords').innerText = numberToWords(Math.floor(total)) + " TAKA ONLY";
+        document.getElementById('wtm-text-view').innerText = document.getElementById('wtmIn').value;
     }
 
-    function saveAndDownload() {
-        const inv = document.getElementById('invoice');
-        logs.push({ date: document.getElementById('dateIn').value, user: currentUser, inv: document.getElementById('invIn').value, cust: document.getElementById('cNameIn').value || "Walking Customer", total: document.getElementById('outTotal').innerText, html: inv.innerHTML });
-        localStorage.setItem('cc_pro_logs', JSON.stringify(logs));
-        html2pdf().set({ margin:0, filename: document.getElementById('invIn').value + '.pdf', image:{type:'jpeg', quality:0.98}, html2canvas:{scale:2, useCORS:true}, jsPDF:{unit:'in', format:'a4', orientation:'portrait'} }).from(inv).save();
-    }
+    function generatePDF() {
+        const element = document.getElementById('invoice');
+        
+        // GitHub Pages এর জন্য সবচাইতে শক্তিশালী PDF কনফিগারেশন
+        const opt = {
+            margin: 0,
+            filename: 'Invoice_' + (document.getElementById('invNoIn').value || 'New') + '.pdf',
+            image: { type: 'jpeg', quality: 1 },
+            html2canvas: { 
+                scale: 2, 
+                useCORS: true, 
+                logging: false,
+                width: 793, // A4 pixel width at 96 DPI
+                height: 1122 // A4 pixel height at 96 DPI
+            },
+            jsPDF: { 
+                unit: 'mm', 
+                format: 'a4', 
+                orientation: 'portrait' 
+            }
+        };
 
-    function downloadHistory(index) {
-        let item = logs[index];
-        let tempDiv = document.createElement('div');
-        tempDiv.style.width = "800px"; tempDiv.style.padding = "40px"; tempDiv.style.background = "white"; tempDiv.innerHTML = item.html;
-        html2pdf().set({ margin:0, filename: item.inv + '.pdf', image:{type:'jpeg', quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'in', format:'a4'} }).from(tempDiv).save();
-    }
-
-    function numberToWords(num) {
-        const a = ['','one ','two ','three ','four ','five ','six ','seven ','eight ','nine ','ten ','eleven ','twelve ','thirteen ','fourteen ','fifteen ','sixteen ','seventeen ','eighteen ','nineteen '];
-        const b = ['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
-        if(num === 0) return 'ZERO';
-        let n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
-        if (!n) return ''; let str = '';
-        str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'crore ' : '';
-        str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'lakh ' : '';
-        str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'thousand ' : '';
-        str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'hundred ' : '';
-        str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : '';
-        return str.toUpperCase();
+        html2pdf().set(opt).from(element).save();
     }
 </script>
+
 </body>
 </html>
